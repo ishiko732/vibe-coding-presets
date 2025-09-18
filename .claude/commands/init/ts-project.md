@@ -30,6 +30,10 @@ Ask the user to specify the project type and name:
 1. Enable corepack for pnpm: `corepack enable pnpm`
 2. Create project directory and navigate to it
 3. Validate that directory doesn't already exist
+4. **Initialize Claude Configuration**:
+   - Copy current `.claude` folder to the project directory
+   - Exclude `.claude/settings.local.json` from copying
+   - Skip if initializing in current directory
 
 ### Project Type Initialization
 
@@ -316,6 +320,21 @@ jspm_packages/
 .storybook-out
 ```
 
+### Claude Configuration Setup
+
+If initializing in a new directory (not current directory):
+
+1. **Initialize Claude Configuration**:
+   - Claude will automatically detect and locate the current `.claude` folder
+   - Copy the entire `.claude` folder to the new project directory
+   - Exclude `.claude/settings.local.json` from copying
+   - Preserve all agent configurations, output styles, and commands
+
+2. **Verify Claude Configuration**:
+   - Ensure `.claude/CLAUDE.md` contains project-specific rules
+   - Verify agents and output-styles are properly copied
+   - Confirm commands directory structure is intact
+
 ## Final Steps
 
 1. Run `pnpm install` to install all dependencies
@@ -335,6 +354,7 @@ After running this command, the user will have:
 - ✅ All development scripts ready to use
 - ✅ Type checking configured
 - ✅ Git repository initialized with comprehensive .gitignore
+- ✅ Claude configuration copied and ready to use (excluding local settings)
 
 ## Usage Examples
 
