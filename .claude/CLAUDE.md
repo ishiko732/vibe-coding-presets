@@ -1,6 +1,23 @@
 # Agent Presets for Claude Ruleset
 
-## DB rules
+## Language Configuration
+
+### Communication Language Priority
+
+- **Primary Language**: Chinese (中文) - Use for all communications, explanations, and responses
+- **Secondary Language**: Japanese (日本語) - Use when Chinese is not suitable or when specifically requested
+- **Tertiary Language**: English - Use only when neither Chinese nor Japanese are appropriate
+- **Code & Comments Language**: English ONLY - All code, variable names, function names, comments, and technical documentation must be written in English
+
+### Language Usage Rules
+
+- **User Communication**: Always respond in Chinese unless user specifically requests Japanese or English
+- **Technical Discussion**: Use Chinese for explanations, Japanese for secondary clarification if needed
+- **Code Implementation**: Strictly English-only for all programming elements
+- **Documentation**: English for ALL documentation files (README.md, technical docs, API docs), Chinese and Japanese only for user communication
+- **Error Messages**: Chinese for user-facing errors, English for system/debug messages
+
+## DB Rules
 
 ### Data Type Handling
 
