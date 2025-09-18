@@ -92,11 +92,14 @@ apps/
 ### Linting Setup (Biome)
 
 1. Install Biome (if not already installed by create-next-app): `pnpm add -D @biomejs/biome`
-2. Create or update `biome.json` configuration with Next.js optimizations:
+2. **Check Biome version and update schema**: Get the installed Biome version and update the `$schema` URL accordingly
+   - Run `npx @biomejs/biome --version` to get the current version
+   - Update the schema URL to match: `https://biomejs.dev/schemas/{version}/schema.json`
+3. Create or update `biome.json` configuration with version-matched schema and optimizations:
 
 ```json
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+  "$schema": "https://biomejs.dev/schemas/{BIOME_VERSION}/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -161,11 +164,28 @@ apps/
 }
 ```
 
+**Important Note**: When creating the configuration file, Claude must:
+
+- First check the installed Biome version: `npx @biomejs/biome --version`
+- Replace `{BIOME_VERSION}` in the config with the actual version number
+- Ensure the schema URL matches the installed Biome version exactly
+
 ### TailwindCSS Setup (for simple and web-service)
 
-1. Install TailwindCSS: `pnpm add -D tailwindcss postcss autoprefixer`
+1. Install TailwindCSS with PostCSS plugin: `pnpm add -D tailwindcss @tailwindcss/postcss autoprefixer`
 2. Initialize config: `npx tailwindcss init -p`
-3. Configure `tailwind.config.js`:
+3. Update `postcss.config.js` to use the correct PostCSS plugin:
+
+```javascript
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
+}
+```
+
+4. Configure `tailwind.config.js`:
 
 ```javascript
 /** @type {import('tailwindcss').Config} */
@@ -183,6 +203,26 @@ export default {
 ```
 
 1. Create CSS file with Tailwind directives in appropriate src directory
+
+**Important Note**: When setting up TailwindCSS, Claude must:
+
+- Always install `@tailwindcss/postcss` along with `tailwindcss`
+- Update the PostCSS configuration to use `@tailwindcss/postcss` instead of `tailwindcss` directly
+- This prevents PostCSS plugin errors in newer TailwindCSS versions
+
+### TypeScript Latest Version Setup
+
+Ensure TypeScript is updated to the latest version:
+
+1. **Install latest TypeScript**: `pnpm add -D typescript@latest`
+2. **Verify TypeScript version**: Run `npx tsc --version` to confirm the latest version is installed
+3. **Update @types/node if needed**: `pnpm add -D @types/node@latest`
+
+**Important Note**: When setting up TypeScript, Claude must:
+
+- Always install the latest stable version of TypeScript
+- Verify the installed version matches the latest available
+- Update related type definitions accordingly
 
 ### Package.json Scripts Configuration
 
@@ -325,6 +365,7 @@ jspm_packages/
 If initializing in a new directory (not current directory):
 
 1. **Initialize Claude Configuration**:
+
    - Claude will automatically detect and locate the current `.claude` folder
    - Copy the entire `.claude` folder to the new project directory
    - Exclude `.claude/settings.local.json` from copying
@@ -346,10 +387,10 @@ If initializing in a new directory (not current directory):
 
 After running this command, the user will have:
 
-- ✅ A fully configured TypeScript project
+- ✅ A fully configured TypeScript project with latest TypeScript version
 - ✅ pnpm as package manager with corepack enabled
 - ✅ Biome configured for linting and formatting
-- ✅ TailwindCSS ready for styling
+- ✅ TailwindCSS ready for styling with correct PostCSS plugin setup
 - ✅ Proper project structure (monorepo if requested)
 - ✅ All development scripts ready to use
 - ✅ Type checking configured
