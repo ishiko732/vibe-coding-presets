@@ -1,4 +1,4 @@
-# Agent Presets for Claude Ruleset
+# AI Coding Presets for Claude Ruleset
 
 ## Language Configuration
 
