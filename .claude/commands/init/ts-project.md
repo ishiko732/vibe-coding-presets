@@ -143,7 +143,7 @@ apps/
         "recommended": true
       }
     },
-    "includes": ["**", "!packages/**/dist/*", "!.next/**/*"]
+    "includes": ["**", "!.next/**/*", "!dist/**/*"]
   },
   "javascript": {
     "formatter": {
@@ -182,7 +182,7 @@ export default {
     '@tailwindcss/postcss': {},
     autoprefixer: {},
   },
-}
+};
 ```
 
 4. Configure `tailwind.config.js`:
@@ -226,7 +226,20 @@ Ensure TypeScript is updated to the latest version:
 
 ### Package.json Scripts Configuration
 
-Add the following scripts to package.json (Next.js projects will have some of these pre-configured):
+1. **Set packageManager field**: Add packageManager field to package.json to avoid Corepack warnings
+
+```bash
+# Get current pnpm version and set it in package.json
+pnpm --version | xargs -I {} npm pkg set packageManager=pnpm@{}
+```
+
+**Important Note**: Setting the packageManager field:
+
+- Prevents Corepack warnings about missing packageManager field
+- Ensures consistent package manager usage across the project
+- Locks the project to a specific pnpm version for reproducibility
+
+2. Add the following scripts to package.json (Next.js projects will have some of these pre-configured):
 
 ```json
 {
@@ -378,17 +391,18 @@ If initializing in a new directory (not current directory):
 
 ## Final Steps
 
-1. Run `pnpm install` to install all dependencies
-2. Display project structure summary
-3. Show available npm scripts
-4. Provide next steps for the user
+1. Set packageManager field in package.json to avoid Corepack warnings
+2. Run `pnpm install` to install all dependencies
+3. Display project structure summary
+4. Show available npm scripts
+5. Provide next steps for the user
 
 ## Expected Outcome
 
 After running this command, the user will have:
 
 - ✅ A fully configured TypeScript project with latest TypeScript version
-- ✅ pnpm as package manager with corepack enabled
+- ✅ pnpm as package manager with corepack enabled and packageManager field set
 - ✅ Biome configured for linting and formatting
 - ✅ TailwindCSS ready for styling with correct PostCSS plugin setup
 - ✅ Proper project structure (monorepo if requested)
