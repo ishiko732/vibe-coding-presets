@@ -1,31 +1,14 @@
-# Agent Presets for Claude
+# Agent Presets for Claude Ruleset
 
-## Project Overview
+## DB rules
 
-This is an "agent-presets" repository that contains Claude Code configurations including custom output styles and specialized agents. The project structure is designed to provide reusable templates and configurations for different types of AI-assisted development workflows.
+### Data Type Handling
 
-## Key Configuration Files
+- **Decimal Type Processing**: When using decimal data types, the returned value is a String type. Always convert to the appropriate numeric type (Number, BigInt, etc.) before performing mathematical operations to avoid type errors and calculation mistakes.
 
-### Output Styles
-- **critical-analyst.md**: Professional analysis mode with rigorous technical evaluation, challenge assumptions, and evidence-based responses. Use for critical code reviews and technical assessments.
+### Field Naming Convention
 
-### Specialized Agents
-- **ui-designer.md**: UI/UX design specialist for interface improvements, animations, user experience optimization, and design system integration. Includes expertise in modern web design principles, accessibility standards, and technical implementation.
-
-## Development Notes
-
-- This repository serves as a template/preset collection rather than a traditional software project
-- No package.json, build scripts, or testing frameworks are present as this is a configuration-only repository
-- The .gitignore contains only "settings.local.json" indicating local configuration files should not be committed
-- Focus on maintaining clean, well-documented configuration files that can be easily imported into other projects
-
-## Usage Context
-
-When working with this repository, prioritize:
-1. Clear documentation of configuration purposes and use cases
-2. Maintaining consistency in configuration file formats and structure
-3. Adding appropriate metadata (name, description, color) to new configurations
-4. Following the established pattern for output styles and agent definitions
+- **Snake Case Format**: All database field names must use snake_case format (lowercase with underscores). Examples: `user_id`, `created_at`, `order_total_amount`.
 
 ## Core Operational Rules
 
