@@ -1,4 +1,4 @@
-# AI Coding Presets for Claude
+# Vibe Coding Presets for Claude
 
 This project contains intelligent agent preset configurations for Claude Code to enhance development efficiency and code quality.
 

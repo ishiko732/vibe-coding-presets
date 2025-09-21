@@ -1,4 +1,4 @@
-# AI Coding Presets for Claude Ruleset
+# Vibe Coding Presets for Claude Ruleset
 
 ## Language Configuration
 
