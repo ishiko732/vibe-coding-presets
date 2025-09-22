@@ -42,14 +42,27 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
         exit 0
     fi
     
-    # Fetch the remote branch and merge/rebase if needed
+    # Fetch the remote branch
     echo "Fetching remote branch..."
     git fetch origin "${SYNC_BRANCH}"
     
+    # Save current changes by stashing them
+    echo "Stashing current changes..."
+    git stash push -u -m "temp stash for branch switch"
+    STASHED=true
+    
     # Create local branch from remote
+    echo "Switching to branch ${SYNC_BRANCH}..."
     git switch -C "${SYNC_BRANCH}" "origin/${SYNC_BRANCH}"
     
+    # Apply stashed changes
+    if [ "$STASHED" = true ]; then
+        echo "Applying stashed changes..."
+        git stash pop
+    fi
+    
     # Stage all changes
+    echo "Staging changes..."
     git add -A
     
     # Check if there are any changes to commit

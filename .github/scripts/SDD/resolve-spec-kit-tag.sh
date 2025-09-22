@@ -31,10 +31,6 @@ else
     fi
 fi
 
-# Validate tag format
-if [[ ! "${TAG}" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}$ ]]; then
-    echo "::warning::Tag '${TAG}' does not match expected format (vYYYY.MM.DD)"
-fi
 
 # Generate safe branch name
 SAFE_TAG=$(echo "${TAG}" | sed -e 's/[^A-Za-z0-9._-]/-/g')
