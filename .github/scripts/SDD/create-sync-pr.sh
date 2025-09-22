@@ -68,9 +68,9 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
     echo "Remote branch ${SYNC_BRANCH} already exists"
     
     # Check if PR already exists first
-    if gh pr view --repo "${GITHUB_REPOSITORY}" --head "${SYNC_BRANCH}" >/dev/null 2>&1; then
+    if gh pr view "${SYNC_BRANCH}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
         echo "Pull request for ${SYNC_BRANCH} already exists. Skipping creation."
-        PR_URL=$(gh pr view --repo "${GITHUB_REPOSITORY}" --head "${SYNC_BRANCH}" --json url --jq '.url')
+        PR_URL=$(gh pr view "${SYNC_BRANCH}" --repo "${GITHUB_REPOSITORY}" --json url --jq '.url')
         echo "Existing PR: ${PR_URL}"
         exit 0
     fi
@@ -115,7 +115,7 @@ else
 fi
 
 # Create PR for new branch (existing branch already handled above)
-if ! gh pr view --repo "${GITHUB_REPOSITORY}" --head "${SYNC_BRANCH}" >/dev/null 2>&1; then
+if ! gh pr view "${SYNC_BRANCH}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
     echo "Creating new pull request..."
     gh pr create \
         --title "chore: sync spec-kit ${SPEC_KIT_TAG}" \
@@ -123,9 +123,9 @@ if ! gh pr view --repo "${GITHUB_REPOSITORY}" --head "${SYNC_BRANCH}" >/dev/null
         --base main \
         --head "${SYNC_BRANCH}"
     
-    PR_URL=$(gh pr view --repo "${GITHUB_REPOSITORY}" --head "${SYNC_BRANCH}" --json url --jq '.url')
+    PR_URL=$(gh pr view "${SYNC_BRANCH}" --repo "${GITHUB_REPOSITORY}" --json url --jq '.url')
     echo "Created PR: ${PR_URL}"
 else
-    PR_URL=$(gh pr view --repo "${GITHUB_REPOSITORY}" --head "${SYNC_BRANCH}" --json url --jq '.url')
+    PR_URL=$(gh pr view "${SYNC_BRANCH}" --repo "${GITHUB_REPOSITORY}" --json url --jq '.url')
     echo "Updated existing PR: ${PR_URL}"
 fi
