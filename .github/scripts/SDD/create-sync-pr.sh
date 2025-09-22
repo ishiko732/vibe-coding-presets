@@ -60,6 +60,12 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
     # Stage all changes
     echo "Staging changes..."
     git add -A
+
+    # Check if there are any changes to commit
+    if git diff --cached --quiet; then
+        echo "No changes to commit after sync. Skipping commit and PR creation."
+        exit 0
+    fi
     
     # Check if there are any changes to commit
     if git diff --cached --quiet; then
