@@ -1,0 +1,63 @@
+name: Sync Spec Kit
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      spec_kit_tag:
+        description: 'Spec Kit release tag (e.g. v2023.10.16)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: spec-kit-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve Spec Kit tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./.github/scripts/SDD/resolve-spec-kit-tag.sh \
+            "${{ github.event.inputs.spec_kit_tag }}" \
+            "${{ vars.SPEC_KIT_TAG }}"
+
+      - name: Download Spec Kit release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./.github/scripts/SDD/download-spec-kit.sh "${SPEC_KIT_TAG}"
+
+      - name: Extract and sync Spec Kit content
+        run: |
+          ./.github/scripts/SDD/sync-spec-kit-content.sh
+
+      - name: Cleanup temporary artifacts
+        run: |
+          # Clean up downloaded archive
+          if [ -n "${ARCHIVE_PATH:-}" ] && [ -f "${ARCHIVE_PATH}" ]; then
+            rm -f "${ARCHIVE_PATH}"
+          fi
+          # Clean up temporary extraction directory
+          if [ -n "${TEMP_WORKDIR:-}" ] && [ -d "${TEMP_WORKDIR}" ]; then
+            rm -rf "${TEMP_WORKDIR}"
+          fi
+
+      - name: Commit and open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./.github/scripts/SDD/create-sync-pr.sh "${SPEC_KIT_TAG}" "${SYNC_BRANCH}"
