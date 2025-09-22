@@ -17,6 +17,45 @@ if [ -z "${SYNC_BRANCH}" ]; then
     exit 1
 fi
 
+ARCHIVE_FILE="spec-kit-template-claude-sh-${SPEC_KIT_TAG}.zip"
+
+run_sync_operations() {
+    local archive_path="${1:-}"
+
+    echo "Executing sync operations on branch ${SYNC_BRANCH}..."
+
+    if [ -z "${archive_path}" ]; then
+        archive_path="${ARCHIVE_FILE}"
+    fi
+
+    if [ ! -f "${archive_path}" ]; then
+        echo "Downloading spec-kit ${SPEC_KIT_TAG}..."
+        ./.github/scripts/SDD/download-spec-kit.sh "${SPEC_KIT_TAG}"
+        archive_path="${ARCHIVE_FILE}"
+    fi
+
+    if [ ! -f "${archive_path}" ]; then
+        echo "::error::Spec Kit archive was not found at: ${archive_path}"
+        exit 1
+    fi
+
+    echo "Syncing spec-kit content..."
+    ./.github/scripts/SDD/sync-spec-kit-content.sh "${archive_path}"
+
+    echo "Staging changes..."
+    git add -A
+
+    if git diff --cached --quiet; then
+        echo "No changes to commit after sync. Skipping commit and PR creation."
+        return 1
+    fi
+
+    ARCHIVE_PATH="${archive_path}"
+    export ARCHIVE_PATH
+
+    return 0
+}
+
 echo "Starting sync process..."
 
 # Configure git user for GitHub Actions
@@ -44,35 +83,10 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
     echo "Switching to branch ${SYNC_BRANCH}..."
     git switch -C "${SYNC_BRANCH}" "origin/${SYNC_BRANCH}"
     
-    # Execute sync operations on the branch
-    echo "Executing sync operations on branch ${SYNC_BRANCH}..."
-    
-    # Download spec-kit if not already done
-    if [ ! -f "${ARCHIVE_PATH:-}" ]; then
-        echo "Downloading spec-kit ${SPEC_KIT_TAG}..."
-        ./.github/scripts/SDD/download-spec-kit.sh "${SPEC_KIT_TAG}"
+    if ! run_sync_operations "${ARCHIVE_PATH:-}"; then
+        exit 0
     fi
-    
-    # Sync spec-kit content
-    echo "Syncing spec-kit content..."
-    ./.github/scripts/SDD/sync-spec-kit-content.sh
-    
-    # Stage all changes
-    echo "Staging changes..."
-    git add -A
 
-    # Check if there are any changes to commit
-    if git diff --cached --quiet; then
-        echo "No changes to commit after sync. Skipping commit and PR creation."
-        exit 0
-    fi
-    
-    # Check if there are any changes to commit
-    if git diff --cached --quiet; then
-        echo "No new changes to commit. Branch is already up to date."
-        exit 0
-    fi
-    
     # Create commit
     echo "Creating commit for spec-kit ${SPEC_KIT_TAG}"
     git commit -m "chore: sync spec-kit ${SPEC_KIT_TAG}"
@@ -87,29 +101,10 @@ else
     echo "Creating new branch: ${SYNC_BRANCH}"
     git switch -C "${SYNC_BRANCH}"
     
-    # Execute sync operations on the new branch
-    echo "Executing sync operations on new branch ${SYNC_BRANCH}..."
-    
-    # Download spec-kit if not already done
-    if [ ! -f "${ARCHIVE_PATH:-}" ]; then
-        echo "Downloading spec-kit ${SPEC_KIT_TAG}..."
-        ./.github/scripts/SDD/download-spec-kit.sh "${SPEC_KIT_TAG}"
-    fi
-    
-    # Sync spec-kit content
-    echo "Syncing spec-kit content..."
-    ./.github/scripts/SDD/sync-spec-kit-content.sh
-    
-    # Stage all changes
-    echo "Staging changes..."
-    git add -A
-    
-    # Check if there are any changes to commit
-    if git diff --cached --quiet; then
-        echo "No changes to commit after sync. Skipping commit and PR creation."
+    if ! run_sync_operations "${ARCHIVE_PATH:-}"; then
         exit 0
     fi
-    
+
     # Create commit
     echo "Creating commit for spec-kit ${SPEC_KIT_TAG}"
     git commit -m "chore: sync spec-kit ${SPEC_KIT_TAG}"
