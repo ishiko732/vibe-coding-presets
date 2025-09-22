@@ -10,6 +10,14 @@ on:
         required: false
         default: ''
 
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: spec-kit-sync
+  cancel-in-progress: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -20,110 +28,36 @@ jobs:
           ref: main
 
       - name: Resolve Spec Kit tag
-        id: resolve_tag
         env:
-          DISPATCH_SPEC_KIT_TAG: ${{ github.event.inputs.spec_kit_tag }}
-          VAR_SPEC_KIT_TAG: ${{ vars.SPEC_KIT_TAG }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          if [ -n "${DISPATCH_SPEC_KIT_TAG}" ]; then
-            TAG="${DISPATCH_SPEC_KIT_TAG}"
-          elif [ -n "${VAR_SPEC_KIT_TAG}" ]; then
-            TAG="${VAR_SPEC_KIT_TAG}"
-          else
-            echo '::error::SPEC_KIT_TAG is not provided via workflow dispatch input or repository variable.'
-            echo 'Provide the Spec Kit release tag through the dispatch input or define the SPEC_KIT_TAG repository variable.'
-            exit 1
-          fi
-          echo "SPEC_KIT_TAG=${TAG}" >> "${GITHUB_ENV}"
-          SAFE_TAG=$(echo "${TAG}" | sed -e 's/[^A-Za-z0-9._-]/-/g')
-          echo "SYNC_BRANCH=spec-kit/sync-${SAFE_TAG}" >> "${GITHUB_ENV}"
+          ./.github/scripts/SDD/resolve-spec-kit-tag.sh \
+            "${{ github.event.inputs.spec_kit_tag }}" \
+            "${{ vars.SPEC_KIT_TAG }}"
 
       - name: Download Spec Kit release assets
         env:
-          SPEC_KIT_TAG: ${{ env.SPEC_KIT_TAG }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          if [ -z "${SPEC_KIT_TAG}" ]; then
-            echo '::error::SPEC_KIT_TAG is empty. Aborting download.'
-            exit 1
-          fi
-          asset="spec-kit-template-claude-sh-${SPEC_KIT_TAG}.zip"
-          echo "Fetching ${asset} from github/spec-kit@${SPEC_KIT_TAG}"
-          if ! gh release download "${SPEC_KIT_TAG}" --repo github/spec-kit --pattern "${asset}" --output "${asset}"; then
-            echo "::error::Failed to download ${asset} for release ${SPEC_KIT_TAG}. Verify that the tag and asset exist."
-            exit 1
-          fi
-          echo "ARCHIVE_PATH=${asset}" >> "${GITHUB_ENV}"
+          ./.github/scripts/SDD/download-spec-kit.sh "${SPEC_KIT_TAG}"
 
       - name: Extract and sync Spec Kit content
-        env:
-          SPEC_KIT_TAG: ${{ env.SPEC_KIT_TAG }}
-          ARCHIVE_PATH: ${{ env.ARCHIVE_PATH }}
         run: |
-          set -euo pipefail
-          if [ -z "${ARCHIVE_PATH}" ] || [ ! -f "${ARCHIVE_PATH}" ]; then
-            echo '::error::Spec Kit archive was not downloaded. Unable to continue.'
-            exit 1
-          fi
-          WORKDIR=$(mktemp -d)
-          unzip -q "${ARCHIVE_PATH}" -d "${WORKDIR}"
-          if [ ! -d "${WORKDIR}/.claude" ] || [ ! -d "${WORKDIR}/.specif" ]; then
-            echo '::error::Expected .claude and .specif directories were not found in the archive.'
-            exit 1
-          fi
-          rm -rf .claude .specif
-          mv "${WORKDIR}/.claude" .
-          mv "${WORKDIR}/.specif" .
-          echo "TEMP_WORKDIR=${WORKDIR}" >> "${GITHUB_ENV}"
+          ./.github/scripts/SDD/sync-spec-kit-content.sh
 
       - name: Cleanup temporary artifacts
-        env:
-          ARCHIVE_PATH: ${{ env.ARCHIVE_PATH }}
-          TEMP_WORKDIR: ${{ env.TEMP_WORKDIR }}
         run: |
-          set -euo pipefail
-          if [ -n "${ARCHIVE_PATH}" ] && [ -f "${ARCHIVE_PATH}" ]; then
+          # Clean up downloaded archive
+          if [ -n "${ARCHIVE_PATH:-}" ] && [ -f "${ARCHIVE_PATH}" ]; then
             rm -f "${ARCHIVE_PATH}"
           fi
-          if [ -n "${TEMP_WORKDIR}" ] && [ -d "${TEMP_WORKDIR}" ]; then
+          # Clean up temporary extraction directory
+          if [ -n "${TEMP_WORKDIR:-}" ] && [ -d "${TEMP_WORKDIR}" ]; then
             rm -rf "${TEMP_WORKDIR}"
           fi
 
-      - name: Show git status
-        run: git status
-
-      - name: Show git diff
-        run: git diff
-
       - name: Commit and open pull request
         env:
-          SPEC_KIT_TAG: ${{ env.SPEC_KIT_TAG }}
-          SYNC_BRANCH: ${{ env.SYNC_BRANCH }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          if [ -z "${SPEC_KIT_TAG}" ]; then
-            echo '::error::SPEC_KIT_TAG is empty. Cannot create commit.'
-            exit 1
-          fi
-          if git diff --quiet; then
-            echo 'No changes detected after sync. Skipping commit and PR creation.'
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "${SYNC_BRANCH}"
-          git add -A
-          git commit -m "chore: sync spec-kit ${SPEC_KIT_TAG}"
-          git push --set-upstream origin "${SYNC_BRANCH}"
-          if gh pr view --head "${SYNC_BRANCH}" >/dev/null 2>&1; then
-            echo "Pull request for ${SYNC_BRANCH} already exists."
-          else
-            gh pr create \
-              --title "chore: sync spec-kit ${SPEC_KIT_TAG}" \
-              --body "Automated sync of Spec Kit release **${SPEC_KIT_TAG}**." \
-              --base main \
-              --head "${SYNC_BRANCH}"
-          fi
+          ./.github/scripts/SDD/create-sync-pr.sh "${SPEC_KIT_TAG}" "${SYNC_BRANCH}"
