@@ -47,9 +47,12 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
     git fetch origin "${SYNC_BRANCH}"
     
     # Save current changes by stashing them
-    echo "Stashing current changes..."
-    git stash push -u -m "temp stash for branch switch"
-    STASHED=true
+    STASHED=false
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo "Stashing current changes..."
+        git stash push -u -m "temp stash for branch switch"
+        STASHED=true
+    fi
     
     # Create local branch from remote
     echo "Switching to branch ${SYNC_BRANCH}..."
