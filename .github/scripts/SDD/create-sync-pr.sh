@@ -17,13 +17,46 @@ if [ -z "${SYNC_BRANCH}" ]; then
     exit 1
 fi
 
-# Detect staged, unstaged, and untracked changes
-if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-    echo "No changes detected after sync. Skipping commit and PR creation."
-    exit 0
-fi
+ARCHIVE_FILE="spec-kit-template-claude-sh-${SPEC_KIT_TAG}.zip"
 
-echo "Changes detected, proceeding with commit and PR creation..."
+run_sync_operations() {
+    local archive_path="${1:-}"
+
+    echo "Executing sync operations on branch ${SYNC_BRANCH}..."
+
+    if [ -z "${archive_path}" ]; then
+        archive_path="${ARCHIVE_FILE}"
+    fi
+
+    if [ ! -f "${archive_path}" ]; then
+        echo "Downloading spec-kit ${SPEC_KIT_TAG}..."
+        ./.github/scripts/SDD/download-spec-kit.sh "${SPEC_KIT_TAG}"
+        archive_path="${ARCHIVE_FILE}"
+    fi
+
+    if [ ! -f "${archive_path}" ]; then
+        echo "::error::Spec Kit archive was not found at: ${archive_path}"
+        exit 1
+    fi
+
+    echo "Syncing spec-kit content..."
+    ./.github/scripts/SDD/sync-spec-kit-content.sh "${archive_path}"
+
+    echo "Staging changes..."
+    git add -A
+
+    if git diff --cached --quiet; then
+        echo "No changes to commit after sync. Skipping commit and PR creation."
+        return 1
+    fi
+
+    ARCHIVE_PATH="${archive_path}"
+    export ARCHIVE_PATH
+
+    return 0
+}
+
+echo "Starting sync process..."
 
 # Configure git user for GitHub Actions
 git config user.name "github-actions[bot]"
@@ -46,34 +79,14 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
     echo "Fetching remote branch..."
     git fetch origin "${SYNC_BRANCH}"
     
-    # Save current changes by stashing them
-    STASHED=false
-    if [[ -n "$(git status --porcelain)" ]]; then
-        echo "Stashing current changes..."
-        git stash push -u -m "temp stash for branch switch"
-        STASHED=true
-    fi
-    
     # Create local branch from remote
     echo "Switching to branch ${SYNC_BRANCH}..."
     git switch -C "${SYNC_BRANCH}" "origin/${SYNC_BRANCH}"
     
-    # Apply stashed changes
-    if [ "$STASHED" = true ]; then
-        echo "Applying stashed changes..."
-        git stash pop
-    fi
-    
-    # Stage all changes
-    echo "Staging changes..."
-    git add -A
-    
-    # Check if there are any changes to commit
-    if git diff --cached --quiet; then
-        echo "No new changes to commit. Branch is already up to date."
+    if ! run_sync_operations "${ARCHIVE_PATH:-}"; then
         exit 0
     fi
-    
+
     # Create commit
     echo "Creating commit for spec-kit ${SPEC_KIT_TAG}"
     git commit -m "chore: sync spec-kit ${SPEC_KIT_TAG}"
@@ -84,13 +97,14 @@ if git ls-remote --exit-code --heads origin "${SYNC_BRANCH}" >/dev/null 2>&1; th
 else
     echo "Remote branch ${SYNC_BRANCH} does not exist, creating new branch"
     
-    # Create or reset local branch to current HEAD
-    echo "Creating/switching to branch: ${SYNC_BRANCH}"
+    # Create new branch from current HEAD
+    echo "Creating new branch: ${SYNC_BRANCH}"
     git switch -C "${SYNC_BRANCH}"
     
-    # Stage all changes
-    git add -A
-    
+    if ! run_sync_operations "${ARCHIVE_PATH:-}"; then
+        exit 0
+    fi
+
     # Create commit
     echo "Creating commit for spec-kit ${SPEC_KIT_TAG}"
     git commit -m "chore: sync spec-kit ${SPEC_KIT_TAG}"
